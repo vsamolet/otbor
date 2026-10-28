@@ -28,6 +28,10 @@ jobs:
 
       - run: npm ci
 
+      - name: Взять прошлую сборку (чтобы не переводить заново)
+        run: |
+          git fetch -q --depth 1 origin gh-pages && git show origin/gh-pages:feed.json > prev-feed.json || echo "прошлой сборки нет"
+
       - name: Собрать источники
         run: node scripts/build-feed.mjs
 

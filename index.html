@@ -36,6 +36,9 @@ svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke
 .brand{flex:1;min-width:0;padding-left:4px}
 .brand b{display:block;font:700 23px/1.1 var(--serif);letter-spacing:-.01em}
 .brand b i{color:var(--accent);font-style:normal}
+.langbtn{flex:none;height:30px;border:1.5px solid var(--line);border-radius:15px;background:transparent;padding:0 10px;font-weight:700;font-size:12.5px;letter-spacing:.02em;color:var(--muted)}
+.langbtn.on{border-color:var(--accent);color:var(--accent)}
+.orig{font-size:11.5px;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:0 5px}
 .status{display:block;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border:0;background:none;padding:0;text-align:left;max-width:100%}
 .status .bad{color:var(--err)}
 .iconbtn{width:42px;height:42px;flex:none;border:0;border-radius:21px;background:transparent;display:grid;place-items:center}
@@ -142,6 +145,7 @@ select.in{width:auto;padding:7px 8px}
       <b>Отбор<i>.</i></b>
       <button class="status" id="status">Загрузка…</button>
     </div>
+    <button class="langbtn" id="btnLang" aria-label="Перевод"></button>
     <button class="iconbtn" id="btnRefresh" aria-label="Обновить">
       <svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>
     </button>
@@ -187,7 +191,7 @@ const LS = {
 };
 const uid = () => Math.random().toString(36).slice(2, 9);
 
-const DISPLAY_DEFAULTS = {maxAgeDays: 3, refreshMin: 15, hideRead: false, layout: 'compact', images: true, proxy: ''};
+const DISPLAY_DEFAULTS = {maxAgeDays: 3, refreshMin: 15, hideRead: false, layout: 'compact', images: true, proxy: '', translate: true, openIn: 'brave'};
 function fromConfig(c){
   return Object.assign({}, DISPLAY_DEFAULTS, {
     topics: (c.topics || []).map(t => ({id: t.id, name: t.name, words: t.words || '', ctx: t.ctx || '', on: true})),
@@ -292,8 +296,9 @@ function ingest(src, items){
     const link = cleanLink(it.link), id = hash(link);
     let ts = Date.parse(it.date); if(!ts || ts > now + 3600e3) ts = now;
     const ex = ITEMS[id];
-    if(ex){ if(!ex.img && it.img) ex.img = it.img; continue; }
+    if(ex){ if(!ex.img && it.img) ex.img = it.img; if(it.tTitle && !ex.tTitle){ ex.tTitle = it.tTitle; ex.tSum = it.tHtml || ''; ex.lang = it.lang || ''; } continue; }
     ITEMS[id] = {id, src: src.id, title: it.title.slice(0, 300), link, sum: stripHtml(it.html).slice(0, 320), img: it.img || '', ts, seen: now};
+    if(it.tTitle){ ITEMS[id].tTitle = it.tTitle; ITEMS[id].tSum = it.tHtml || ''; ITEMS[id].lang = it.lang || ''; }
     added++;
   }
   return added;
@@ -380,7 +385,7 @@ function visibleItems(){
   const list = [];
   for(const it of pool){
     const src = srcMap[it.src];
-    const text = it.title + ' \n ' + it.sum;
+    const text = it.title + ' \n ' + it.sum + (it.tTitle ? ' \n ' + it.tTitle + ' \n ' + (it.tSum || '') : '');
     const tp = topics.filter(x => x.re.test(text) && (!x.ctx || x.ctx.test(text))).map(x => x.t);
     let srcTopic = null;
     if(src && src.mode === 'all' && src.topic){
@@ -417,6 +422,23 @@ const ICON = {
   save: '<svg viewBox="0 0 24 24"><path d="M6 4h12v17l-6-4-6 4z"/></svg>',
   more: '<svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></svg>',
 };
+const showOrig = new Set();   // карточки, у которых вручную включён оригинал
+const isTr = it => S.translate && it.tTitle && !showOrig.has(it.id);
+const tTitle = it => isTr(it) ? it.tTitle : it.title;
+const tSum = it => isTr(it) ? (it.tSum || it.sum) : it.sum;
+function articleUrl(it){
+  return isTr(it) ? 'https://translate.google.com/translate?sl=auto&tl=ru&u=' + encodeURIComponent(it.link) : it.link;
+}
+function openUrl(url){
+  // в установленном приложении на Android ссылка иначе открывается во встроенной вкладке
+  if(S.openIn === 'brave' && /Android/i.test(navigator.userAgent)){
+    const u = new URL(url);
+    location.href = 'intent://' + u.host + u.pathname + u.search + '#Intent;scheme=' + u.protocol.replace(':', '') +
+      ';package=com.brave.browser;S.browser_fallback_url=' + encodeURIComponent(url) + ';end';
+  } else {
+    window.open(url, '_blank', 'noopener');
+  }
+}
 function cardHTML(it, big){
   const srcName = it._src ? it._src.name : 'Источник удалён';
   const host = hostOf(it.link);
@@ -426,9 +448,9 @@ function cardHTML(it, big){
   const hit = big
     ? `<a class="hit" href="${esc(it.link)}" target="_blank" rel="noopener" data-open="${it.id}">
          ${img ? `<img class="cover" src="${img}" loading="lazy" referrerpolicy="no-referrer" alt="" onerror="this.remove()">` : ''}
-         <div class="body"><h2>${esc(it.title)}</h2>${it.sum ? `<p>${esc(it.sum)}</p>` : ''}</div></a>`
+         <div class="body"><h2>${esc(tTitle(it))}</h2>${tSum(it) ? `<p>${esc(tSum(it))}</p>` : ''}</div></a>`
     : `<a class="hit row" href="${esc(it.link)}" target="_blank" rel="noopener" data-open="${it.id}">
-         <div class="body"><h2>${esc(it.title)}</h2></div>
+         <div class="body"><h2>${esc(tTitle(it))}</h2></div>
          ${img ? `<img class="thumb" src="${img}" loading="lazy" referrerpolicy="no-referrer" alt="" onerror="this.remove()">` : ''}</a>`;
   const tags = it._tp.length ? `<div class="tags">${it._tp.map(t => `<span class="tag">${esc(t.name)}</span>`).join('')}</div>` : '';
   return `<article class="${cls}" data-id="${it.id}">${hit}${tags}
@@ -436,7 +458,7 @@ function cardHTML(it, big){
       <img class="fav" src="https://icons.duckduckgo.com/ip3/${esc(host)}.ico" alt="" loading="lazy" onerror="this.style.visibility='hidden'">
       <button class="src" data-src="${it._src ? it._src.id : ''}">${esc(srcName)}</button>
       ${it._also.length ? `<span class="also">${it._also.length === 1 ? 'и ' + esc(it._also[0]) : 'и ещё ' + it._also.length}</span>` : ''}
-      <span>·</span><time>${rel(it.ts)}</time>${fresh ? '<i class="new" title="Новое"></i>' : ''}
+      <span>·</span><time>${rel(it.ts)}</time>${isTr(it) ? `<span class="orig" title="Переведено">${esc((it.lang || 'en').toUpperCase())}→RU</span>` : ''}${fresh ? '<i class="new" title="Новое"></i>' : ''}
       <span class="sp"></span>
       <button class="iconbtn ${ST.saved[it.id] ? 'on' : ''}" data-save="${it.id}" aria-label="Сохранить">${ICON.save}</button>
       <button class="iconbtn" data-more="${it.id}" aria-label="Ещё">${ICON.more}</button>
@@ -489,7 +511,13 @@ $('#chips').addEventListener('click', e => {
 });
 $('#feed').addEventListener('click', e => {
   const o = e.target.closest('[data-open]');
-  if(o){ ST.read[o.dataset.open] = Date.now(); saveAll(); setTimeout(() => o.closest('.card')?.classList.add('read'), 400); return; }
+  if(o){
+    e.preventDefault();
+    const it = findItem(o.dataset.open);
+    ST.read[o.dataset.open] = Date.now(); saveAll();
+    if(it) openUrl(articleUrl(it));
+    setTimeout(() => o.closest('.card')?.classList.add('read'), 400); return;
+  }
   const sv = e.target.closest('[data-save]');
   if(sv){ toggleSave(sv.dataset.save); sv.classList.toggle('on', !!ST.saved[sv.dataset.save]); renderChips(); return; }
   const m = e.target.closest('[data-more]'); if(m){ openActions(m.dataset.more); return; }
@@ -508,7 +536,8 @@ function openActions(id){
   const it = findItem(id); if(!it) return;
   const src = S.sources.find(s => s.id === it.src);
   const a = $('#actions');
-  a.innerHTML = `<div class="ttl">${esc(it.title)}</div>
+  a.innerHTML = `<div class="ttl">${esc(tTitle(it))}</div>
+    ${it.tTitle && S.translate ? (showOrig.has(id) ? '<button data-act="tr">Показать перевод</button>' : '<button data-act="orig">Показать оригинал</button><button data-act="origlink">Открыть статью без перевода</button>') : ''}
     ${navigator.share ? '<button data-act="share">Поделиться</button>' : '<button data-act="copy">Скопировать ссылку</button>'}
     <button data-act="hide">Скрыть эту новость</button>
     <button data-act="stop">Не показывать новости со словом…</button>
@@ -523,6 +552,9 @@ $('#actions').addEventListener('click', async e => {
   const id = $('#actions').dataset.id, it = findItem(id), act = b.dataset.act;
   closeActions();
   if(!it) return;
+  if(act === 'orig'){ showOrig.add(id); render(); return; }
+  if(act === 'tr'){ showOrig.delete(id); render(); return; }
+  if(act === 'origlink'){ ST.read[id] = Date.now(); saveAll(); openUrl(it.link); render(); return; }
   if(act === 'share'){ try{ await navigator.share({title: it.title, url: it.link}); }catch(e){} }
   if(act === 'copy'){ try{ await navigator.clipboard.writeText(it.link); toast('Ссылка скопирована'); }catch(e){} }
   if(act === 'hide'){ ST.hidden[id] = Date.now(); delete ST.saved[id]; saveAll(); render(); toast('Скрыто'); }
@@ -545,6 +577,12 @@ $('#actions').addEventListener('click', async e => {
 })();
 
 $('#btnRefresh').addEventListener('click', () => refresh(true));
+function renderLang(){ const b = $('#btnLang'); b.textContent = S && S.translate ? 'RU' : 'ОРИГ'; b.classList.toggle('on', !!(S && S.translate)); b.setAttribute('aria-pressed', !!(S && S.translate)); }
+$('#btnLang').addEventListener('click', () => {
+  if(!S) return;
+  S.translate = !S.translate; showOrig.clear(); saveAll(); renderLang(); render();
+  toast(S.translate ? 'Иностранные новости — на русском' : 'Показываю оригиналы');
+});
 $('#status').addEventListener('click', () => openSheet('sources'));
 
 /* ---------- settings ---------- */
@@ -599,6 +637,8 @@ function renderPane(){
         <label class="check"><span class="grow">Скрывать прочитанное</span>${sw('', S.hideRead, 'fRead')}</label>
         <label class="check"><span class="grow">Показывать картинки</span>${sw('', S.images, 'fImg')}</label>
         <label class="check"><span class="grow">Крупные карточки</span>${sw('', S.layout === 'big', 'fBig')}</label>
+        <label class="check"><span class="grow">Переводить иностранные новости на русский</span>${sw('', S.translate, 'fTr')}</label>
+        <label class="check"><span class="grow">Открывать статьи в Brave<br><small style="color:var(--muted)">выключено — во встроенной вкладке</small></span>${sw('', S.openIn === 'brave', 'fBrave')}</label>
       </div>
       <button class="btn" id="unhide" style="width:100%">Вернуть скрытые новости (${Object.keys(ST.hidden).length})</button>`;
   }
@@ -641,6 +681,8 @@ $('#pane').addEventListener('change', e => {
   if(el.id === 'fRead') S.hideRead = el.checked;
   if(el.id === 'fImg') S.images = el.checked;
   if(el.id === 'fBig') S.layout = el.checked ? 'big' : 'compact';
+  if(el.id === 'fTr'){ S.translate = el.checked; renderLang(); }
+  if(el.id === 'fBrave') S.openIn = el.checked ? 'brave' : 'tab';
   if(el.id === 'impFile' && el.files[0]) importFile(el.files[0]);
   dirty = true; LS.set(K.settings, S);
 });
@@ -707,7 +749,8 @@ if('serviceWorker' in navigator && location.protocol === 'https:') navigator.ser
     try{ const c = await (await fetch('config.json?t=' + Date.now(), {cache: 'no-store'})).json(); S = fromConfig(c); }
     catch(e){ render(); return; }
   }
-  saveAll(); render();
+  S = Object.assign({}, DISPLAY_DEFAULTS, S);
+  saveAll(); renderLang(); render();
   if(Date.now() - META.lastRefresh > 2 * 60e3) refresh(false);
 })();
 </script>

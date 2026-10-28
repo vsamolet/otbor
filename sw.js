@@ -1,6 +1,6 @@
 // Отбор: кэш оболочки приложения, чтобы лента открывалась мгновенно и без сети.
 // Свежие данные (feed.json, config.json) всегда берутся из сети.
-const V = 'otbor-v2';
+const V = 'otbor-v3';
 const SHELL = ['./', 'index.html', 'parse.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png'];
 
 self.addEventListener('install', e => {

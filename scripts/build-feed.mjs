@@ -94,6 +94,58 @@ await Promise.all(Array.from({ length: PARALLEL }, async () => {
   }
 }));
 
+// ---- перевод иноязычных заголовков и анонсов: Google Translate (бесплатный веб-адрес, без ключа) ----
+// Переводится только новое: готовые переводы берутся из прошлой сборки (prev-feed.json кладёт workflow).
+const isForeign = s => {
+  const cyr = (s.match(/[Ѐ-ӿ]/g) || []).length, lat = (s.match(/[A-Za-z]/g) || []).length;
+  return lat >= 12 && cyr < lat * 0.1;
+};
+const prevTr = new Map();
+try {
+  const prev = JSON.parse(await fs.readFile(process.env.OTBOR_PREV || path.join(ROOT, 'prev-feed.json'), 'utf8'));
+  for (const f of Object.values(prev.feeds || {})) for (const it of f.items || [])
+    if (it.tTitle) prevTr.set(it.link, { tTitle: it.tTitle, tHtml: it.tHtml || '', lang: it.lang || '' });
+} catch (e) {}
+
+async function gtx(text) {
+  const url = 'https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=ru&dt=t&q=' + encodeURIComponent(text);
+  const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), 15000);
+  try {
+    const r = await fetch(url, { signal: ctrl.signal, headers: { 'User-Agent': UA } });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const j = await r.json();
+    return { text: (j[0] || []).map(x => x && x[0] || '').join(''), lang: j[2] || '' };
+  } finally { clearTimeout(t); }
+}
+
+const todo = [];
+let reused = 0;
+for (const f of Object.values(feeds)) for (const it of f.items) {
+  if (!isForeign(it.title + ' ' + it.html)) continue;
+  const p = prevTr.get(it.link);
+  if (p) { Object.assign(it, p); reused++; } else todo.push(it);
+}
+let translated = 0, failsInRow = 0, trErr = '';
+const trDeadline = Date.now() + 4 * 60e3;
+await Promise.all(Array.from({ length: 4 }, async () => {
+  while (todo.length && failsInRow < 6 && Date.now() < trDeadline) {
+    const it = todo.shift();
+    const snippet = it.html.slice(0, 300);
+    try {
+      const r = await gtx(it.title + (snippet ? '\n' + snippet : ''));
+      const nl = r.text.indexOf('\n');
+      it.tTitle = (nl >= 0 ? r.text.slice(0, nl) : r.text).trim();
+      it.tHtml = nl >= 0 ? r.text.slice(nl + 1).trim() : '';
+      it.lang = r.lang;
+      if (!it.tTitle || r.lang === 'ru') { delete it.tTitle; delete it.tHtml; }
+      else translated++;
+      failsInRow = 0;
+    } catch (e) { failsInRow++; trErr = e.message; }
+    await new Promise(r => setTimeout(r, 120));
+  }
+}));
+console.log(`\nПеревод: новых ${translated}, из прошлой сборки ${reused}, осталось без перевода ${todo.length}${trErr ? ' (последняя ошибка: ' + trErr + ')' : ''}`);
+
 // приложение + данные
 await fs.rm(OUT, { recursive: true, force: true });
 await fs.mkdir(OUT, { recursive: true });
