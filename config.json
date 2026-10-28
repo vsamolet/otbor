@@ -137,7 +137,11 @@
    "url": "https://www.gsmarena.com/rss-news-reviews.php3",
    "site": "https://www.gsmarena.com",
    "mode": "all",
-   "topic": "mobile"
+   "topic": "mobile",
+   "alt": [
+    "https://m.gsmarena.com/rss-news-reviews.php3",
+    "https://www.gsmarena.com/rss-news.php3"
+   ]
   },
   {
    "name": "SamMobile",
@@ -162,7 +166,12 @@
    "name": "AdIndex",
    "url": "https://adindex.ru/rss/",
    "site": "https://adindex.ru",
-   "mode": "topics"
+   "mode": "topics",
+   "alt": [
+    "https://adindex.ru/rss/news.xml",
+    "https://adindex.ru/rss.xml",
+    "https://adindex.ru/news/rss/"
+   ]
   },
   {
    "name": "Cossa",
@@ -183,16 +192,15 @@
    "mode": "topics"
   },
   {
-   "name": "PRWeek",
-   "url": "https://www.prweek.com/rss",
-   "site": "https://www.prweek.com",
-   "mode": "topics"
-  },
-  {
    "name": "Campaign",
    "url": "https://www.campaignlive.co.uk/rss/news",
    "site": "https://www.campaignlive.co.uk",
-   "mode": "topics"
+   "mode": "topics",
+   "alt": [
+    "https://www.campaignlive.co.uk/rss/latest",
+    "https://www.campaignlive.co.uk/rss",
+    "https://www.campaignlive.com/rss/news"
+   ]
   },
   {
    "name": "PR Daily",
@@ -216,12 +224,6 @@
    "name": "РБК",
    "url": "https://rssexport.rbc.ru/rbcnews/news/30/full.rss",
    "site": "https://www.rbc.ru",
-   "mode": "topics"
-  },
-  {
-   "name": "Warhammer Community",
-   "url": "https://www.warhammer-community.com/feed/",
-   "site": "https://www.warhammer-community.com",
    "mode": "topics"
   },
   {
@@ -292,13 +294,22 @@
    "url": "https://gorky.media/feed/",
    "site": "https://gorky.media",
    "mode": "all",
-   "topic": "scifi"
+   "topic": "scifi",
+   "alt": [
+    "https://gorky.media/feed",
+    "https://gorky.media/rss/",
+    "https://gorky.media/rss.xml"
+   ]
   },
   {
    "name": "Кинопоиск Медиа",
    "url": "https://www.kinopoisk.ru/media/rss/",
    "site": "https://www.kinopoisk.ru/media/",
-   "mode": "topics"
+   "mode": "topics",
+   "alt": [
+    "https://www.kinopoisk.ru/media/rss.xml",
+    "https://www.kinopoisk.ru/media/news/rss/"
+   ]
   },
   {
    "name": "Film.ru",
@@ -319,12 +330,6 @@
    "site": "https://locusmag.com",
    "mode": "all",
    "topic": "scifi"
-  },
-  {
-   "name": "Gizmodo",
-   "url": "https://gizmodo.com/feed",
-   "site": "https://gizmodo.com",
-   "mode": "topics"
   },
   {
    "name": "/Film",

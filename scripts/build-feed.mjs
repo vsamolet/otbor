@@ -20,7 +20,7 @@ const UA = 'Mozilla/5.0 (Linux; Android 14; SM-S928B) AppleWebKit/537.36 (KHTML,
 
 const config = JSON.parse(await fs.readFile(process.env.OTBOR_CONFIG || path.join(ROOT, 'config.json'), 'utf8'));
 
-async function get(url) {
+async function get(url, retried = false) {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), TIMEOUT);
   try {
@@ -29,6 +29,9 @@ async function get(url) {
       'Accept': 'application/rss+xml, application/atom+xml, application/xml;q=0.9, text/xml;q=0.9, text/html;q=0.8, */*;q=0.5',
       'Accept-Language': 'ru-RU,ru;q=0.9,en;q=0.8'
     }});
+    if (res.status === 429 && !retried) {          // Reddit и др. просят подождать
+      clearTimeout(t); await new Promise(r => setTimeout(r, 8000)); return get(url, true);
+    }
     if (!res.ok) throw new Error('HTTP ' + res.status);
     return decodeBuf(new Uint8Array(await res.arrayBuffer()), res.headers.get('content-type'));
   } catch (e) {
@@ -38,16 +41,18 @@ async function get(url) {
 
 async function load(src) {
   let firstErr;
-  try {
-    const f = parseFeed(await get(src.url), src.url);
-    if (f && f.items.length) return { feed: f, via: src.url };
-    firstErr = new Error('не RSS или пустая лента');
-  } catch (e) { firstErr = e; }
+  for (const u of [src.url, ...(src.alt || [])]) {   // основной адрес, затем запасные
+    try {
+      const f = parseFeed(await get(u), u);
+      if (f && f.items.length) return { feed: f, via: u };
+      firstErr = firstErr || new Error('не RSS или пустая лента');
+    } catch (e) { firstErr = firstErr || e; }
+  }
   // запасной путь: найти RSS на странице сайта
   if (src.site) {
     try {
       const html = await get(src.site);
-      for (const cand of feedCandidates(html, src.site).filter(u => u !== src.url).slice(0, 6)) {
+      for (const cand of feedCandidates(html, src.site).filter(u => u !== src.url && !(src.alt || []).includes(u)).slice(0, 6)) {
         try {
           const f = parseFeed(await get(cand), cand);
           if (f && f.items.length) return { feed: f, via: cand };
