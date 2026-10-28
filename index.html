@@ -309,8 +309,11 @@ function prune(){
 // новые источники и темы, добавленные в репозиторий, появляются у вас сами (удалённые вами — не возвращаются)
 function syncFromServer(srv){
   let n = 0;
+  const srvUrls = new Set((srv.sources || []).map(s => s.url));
   for(const s of srv.sources || []){
     if(S.sources.some(x => x.url === s.url) || S.removedSources.includes(s.url)) continue;
+    const moved = S.sources.find(x => x.name === s.name && !srvUrls.has(x.url));   // у источника сменился адрес RSS
+    if(moved){ moved.url = s.url; delete META.status[moved.id]; n++; continue; }
     S.sources.push({id: s.id, name: s.name, url: s.url, mode: s.mode, topic: s.topic, on: true}); n++;
   }
   for(const t of srv.topics || []){
