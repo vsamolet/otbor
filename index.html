@@ -1,0 +1,712 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#F6F4EF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#141413" media="(prefers-color-scheme: dark)">
+<meta name="description" content="Своя лента новостей: только ваши источники и темы">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Отбор</title>
+<style>
+:root{
+  --bg:#F6F4EF;--card:#FFFFFF;--ink:#1B1A17;--muted:#6E6A60;--line:#E6E2D8;
+  --accent:#D9480F;--accent-ink:#FFFFFF;--chip:#ECE8DF;--ok:#2F9E44;--err:#E03131;
+  --shadow:0 1px 2px rgba(30,25,15,.05),0 4px 14px rgba(30,25,15,.04);
+  --serif:Georgia,"Noto Serif","Times New Roman",serif;
+  --sans:system-ui,-apple-system,"Samsung One",Roboto,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#141413;--card:#1E1D1B;--ink:#ECEAE4;--muted:#9C978D;--line:#2D2B28;
+  --accent:#FF7A3D;--accent-ink:#141413;--chip:#2A2926;--shadow:none;
+}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 var(--sans);-webkit-text-size-adjust:100%}
+body{overscroll-behavior-y:contain;min-height:100vh}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+
+/* top bar */
+.top{position:sticky;top:0;z-index:10;background:color-mix(in srgb,var(--bg) 90%,transparent);
+  -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);padding:calc(env(safe-area-inset-top) + 8px) 12px 0}
+.bar{display:flex;align-items:center;gap:4px;max-width:720px;margin:0 auto}
+.brand{flex:1;min-width:0;padding-left:4px}
+.brand b{display:block;font:700 23px/1.1 var(--serif);letter-spacing:-.01em}
+.brand b i{color:var(--accent);font-style:normal}
+.status{display:block;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border:0;background:none;padding:0;text-align:left;max-width:100%}
+.status .bad{color:var(--err)}
+.iconbtn{width:42px;height:42px;flex:none;border:0;border-radius:21px;background:transparent;display:grid;place-items:center}
+.iconbtn:active{background:var(--chip)}
+.spin svg{animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:10px 0 10px;scrollbar-width:none;max-width:720px;margin:0 auto}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;border:0;border-radius:999px;padding:7px 14px;background:var(--chip);font-weight:500;font-size:14px;white-space:nowrap}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.chip .n{opacity:.55;margin-left:4px;font-size:12px}
+.progress{height:2px;max-width:720px;margin:0 auto;overflow:hidden}
+.progress i{display:block;height:100%;width:0;background:var(--accent);transition:width .25s}
+.ptr{height:0;overflow:hidden;display:grid;place-items:center;color:var(--muted);font-size:13px;transition:height .15s}
+
+/* feed */
+main{padding:6px 12px calc(env(safe-area-inset-bottom) + 28px);max-width:720px;margin:0 auto}
+.card{background:var(--card);border-radius:18px;margin:0 0 12px;overflow:hidden;box-shadow:var(--shadow);border:1px solid var(--line)}
+.hit{display:block;color:inherit;text-decoration:none}
+.cover{display:block;width:100%;aspect-ratio:16/9;object-fit:cover;background:var(--chip)}
+.body{padding:13px 14px 2px}
+.card h2{font:600 17.5px/1.3 var(--serif);margin:0 0 6px;letter-spacing:-.005em;overflow-wrap:anywhere}
+.card.big h2{font-size:21px}
+.card p{margin:0 0 6px;color:var(--muted);font-size:14px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.card.read h2{color:var(--muted);font-weight:500}
+.card.read .cover,.card.read .thumb{opacity:.6}
+.hit.row{display:flex;gap:12px;padding:13px 14px 2px}
+.hit.row .body{padding:0;flex:1;min-width:0}
+.hit.row h2{display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+.thumb{flex:none;width:92px;height:92px;border-radius:12px;object-fit:cover;background:var(--chip)}
+.meta{display:flex;align-items:center;gap:6px;padding:4px 4px 6px 14px;font-size:12.5px;color:var(--muted);min-height:44px}
+.meta .fav{width:16px;height:16px;border-radius:4px;flex:none}
+.meta .src{border:0;background:none;padding:0;font-weight:600;font-size:12.5px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:38%}
+.meta .also{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.meta time{white-space:nowrap}
+.meta .new{width:7px;height:7px;border-radius:50%;background:var(--accent);flex:none}
+.meta .sp{flex:1}
+.meta .iconbtn{width:38px;height:38px;color:var(--muted)}
+.meta .iconbtn.on{color:var(--accent)}
+.meta .iconbtn.on svg{fill:currentColor}
+.tags{display:flex;gap:6px;flex-wrap:wrap;padding:2px 14px 0}
+.tag{background:var(--chip);border-radius:6px;padding:1px 7px;font-size:11.5px;color:var(--muted)}
+.empty{text-align:center;color:var(--muted);padding:56px 24px}
+.empty b{display:block;font:600 19px var(--serif);color:var(--ink);margin-bottom:6px}
+.more{display:block;width:100%;border:1px solid var(--line);background:var(--card);border-radius:14px;padding:13px;font-weight:600}
+.filterbar{display:flex;align-items:center;gap:8px;margin:0 0 12px;padding:9px 12px;border-radius:12px;background:var(--chip);font-size:14px}
+.filterbar span{flex:1}
+.filterbar button{border:0;background:none;color:var(--accent);font-weight:600}
+
+/* sheets */
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.38);z-index:30;opacity:0;pointer-events:none;transition:opacity .2s}
+.scrim.open{opacity:1;pointer-events:auto}
+.sheet{position:fixed;inset:0;z-index:40;background:var(--bg);display:flex;flex-direction:column;transform:translateY(100%);transition:transform .25s ease;visibility:hidden}
+.sheet.open{transform:none;visibility:visible}
+.sheet header{display:flex;align-items:center;gap:8px;padding:calc(env(safe-area-inset-top) + 8px) 12px 4px}
+.sheet header h1{flex:1;margin:0;padding-left:4px;font:700 21px var(--serif)}
+.done{border:0;border-radius:999px;background:var(--ink);color:var(--bg);padding:8px 18px;font-weight:600}
+.tabs{display:flex;gap:6px;padding:8px 12px;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.pane{flex:1;overflow-y:auto;padding:4px 12px calc(env(safe-area-inset-bottom) + 32px)}
+.pane > *{max-width:720px;margin-left:auto;margin-right:auto}
+.box{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px;margin-bottom:10px}
+.hint{font-size:13px;color:var(--muted);margin:4px 2px 12px}
+.hint code{background:var(--chip);border-radius:4px;padding:0 4px}
+.r1{display:flex;align-items:center;gap:8px}
+.r2{display:flex;align-items:center;gap:8px;margin-top:8px}
+.grow{flex:1;min-width:0}
+.in{width:100%;border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:9px 10px}
+.in:focus{outline:2px solid var(--accent);outline-offset:-1px}
+.in.name{font-weight:600;border-color:transparent;background:transparent;padding:6px 4px}
+.in.name:focus{background:var(--bg)}
+textarea.in{min-height:84px;resize:vertical;line-height:1.4}
+select.in{width:auto;padding:7px 8px}
+.sub{font-size:12px;color:var(--muted);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--line);flex:none}
+.dot.ok{background:var(--ok)}.dot.err{background:var(--err)}
+.btn{border:1px solid var(--line);background:var(--card);border-radius:10px;padding:9px 14px;font-weight:600;white-space:nowrap}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.ghost{border-color:transparent;background:transparent;color:var(--muted);padding:8px}
+.btn:disabled{opacity:.5}
+.switch{position:relative;width:44px;height:26px;flex:none}
+.switch input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer;z-index:1}
+.switch i{position:absolute;inset:0;border-radius:13px;background:var(--line);transition:background .15s}
+.switch i::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .15s;box-shadow:0 1px 2px rgba(0,0,0,.2)}
+.switch input:checked + i{background:var(--accent)}
+.switch input:checked + i::after{transform:translateX(18px)}
+.field{margin-bottom:14px}
+.field > label{display:block;font-weight:600;margin:0 2px 6px}
+.check{display:flex;align-items:center;gap:10px;padding:6px 2px}
+.actions{position:fixed;left:0;right:0;bottom:0;z-index:40;background:var(--card);border-radius:20px 20px 0 0;padding:8px 8px calc(env(safe-area-inset-bottom) + 10px);transform:translateY(105%);transition:transform .22s ease}
+.actions.open{transform:none}
+.actions .ttl{padding:10px 14px 6px;font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.actions button{display:flex;align-items:center;gap:14px;width:100%;border:0;background:none;padding:14px;border-radius:12px;text-align:left;font-size:15.5px}
+.actions button:active{background:var(--chip)}
+.toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 20px);transform:translate(-50%,30px);opacity:0;z-index:50;background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:14px;transition:all .2s;max-width:calc(100% - 32px);pointer-events:none}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="bar">
+    <div class="brand">
+      <b>Отбор<i>.</i></b>
+      <button class="status" id="status">Загрузка…</button>
+    </div>
+    <button class="iconbtn" id="btnRefresh" aria-label="Обновить">
+      <svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>
+    </button>
+    <button class="iconbtn" id="btnSettings" aria-label="Настройки">
+      <svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>
+    </button>
+  </div>
+  <nav class="chips" id="chips"></nav>
+  <div class="progress"><i id="prog"></i></div>
+</header>
+<div class="ptr" id="ptr">Отпустите, чтобы обновить</div>
+<main id="feed"></main>
+
+<div class="scrim" id="scrim"></div>
+
+<section class="sheet" id="sheet" aria-label="Настройки">
+  <header>
+    <h1>Настройки</h1>
+    <button class="done" id="btnDone">Готово</button>
+  </header>
+  <nav class="tabs" id="tabs">
+    <button class="chip" data-tab="sources" aria-pressed="true">Источники</button>
+    <button class="chip" data-tab="topics" aria-pressed="false">Темы</button>
+    <button class="chip" data-tab="filters" aria-pressed="false">Фильтры</button>
+    <button class="chip" data-tab="more" aria-pressed="false">Ещё</button>
+  </nav>
+  <div class="pane" id="pane"></div>
+</section>
+
+<div class="actions" id="actions"></div>
+<div class="toast" id="toast"></div>
+
+<script src="parse.js"></script>
+<script>
+'use strict';
+const {hostOf, hash, stripHtml, cleanLink, decodeBuf, parseFeed, feedCandidates, compileWords} = Otbor;
+
+/* ---------- storage ---------- */
+const K = {settings:'otbor.settings.v2', items:'otbor.items.v2', state:'otbor.state.v2', meta:'otbor.meta.v2'};
+const LS = {
+  get(k, d){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; }catch(e){ return d; } },
+  set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); return true; }catch(e){ return false; } }
+};
+const uid = () => Math.random().toString(36).slice(2, 9);
+
+const DISPLAY_DEFAULTS = {maxAgeDays: 3, refreshMin: 15, hideRead: false, layout: 'compact', images: true, proxy: ''};
+function fromConfig(c){
+  return Object.assign({}, DISPLAY_DEFAULTS, {
+    topics: (c.topics || []).map(t => ({id: t.id, name: t.name, words: t.words || '', ctx: t.ctx || '', on: true})),
+    sources: (c.sources || []).map(s => ({id: s.id || hash(s.url), name: s.name, url: s.url, mode: s.mode || 'topics', topic: s.topic || '', on: true})),
+    block: c.block || '',
+    removedSources: [], removedTopics: []
+  });
+}
+
+let S     = LS.get(K.settings, null);
+let ITEMS = LS.get(K.items, {});
+let ST    = Object.assign({read:{}, saved:{}, hidden:{}}, LS.get(K.state, {}));
+let META  = Object.assign({status:{}, route:{}, lastRefresh:0, serverUpdated:0, lastVisit:0}, LS.get(K.meta, {}));
+const prevVisit = META.lastVisit || 0;
+META.lastVisit = Date.now();
+
+function saveAll(){
+  if(S) LS.set(K.settings, S);
+  LS.set(K.state, ST); LS.set(K.meta, META);
+  if(!LS.set(K.items, ITEMS)){
+    const arr = Object.values(ITEMS).sort((a,b) => b.ts - a.ts).slice(0, 300);
+    ITEMS = Object.fromEntries(arr.map(i => [i.id, i])); LS.set(K.items, ITEMS);
+  }
+}
+
+/* ---------- helpers ---------- */
+const $ = (s, r=document) => r.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const titleKey = t => String(t).toLowerCase().replace(/ё/g,'е').replace(/[^\p{L}\p{N} ]/gu, '').replace(/\s+/g, ' ').trim().slice(0, 70);
+function rel(ts){
+  const d = (Date.now() - ts) / 1000;
+  if(d < 90) return 'сейчас';
+  if(d < 3600) return Math.round(d/60) + ' мин';
+  if(d < 86400) return Math.round(d/3600) + ' ч';
+  if(d < 172800) return 'вчера';
+  return new Date(ts).toLocaleDateString('ru-RU', {day:'numeric', month:'short'});
+}
+
+/* ---------- network: свои источники, которых нет на сервере, идут через прокси ---------- */
+const PROXIES = [
+  {k:'allorigins', f:u => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u)},
+  {k:'corsproxy',  f:u => 'https://corsproxy.io/?url=' + encodeURIComponent(u)},
+  {k:'codetabs',   f:u => 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(u)},
+];
+function routes(u){
+  const r = [{k:'direct', f:u => u}];
+  const p = (S.proxy || '').trim();
+  if(p) r.unshift({k:'custom', f:u => p.includes('{url}') ? p.replace('{url}', encodeURIComponent(u)) : p + encodeURIComponent(u)});
+  r.push(...PROXIES);
+  const pref = META.route[hostOf(u)];
+  if(pref) r.sort((a, b) => (b.k === pref) - (a.k === pref));
+  return r;
+}
+async function fetchText(u){
+  let last;
+  for(const r of routes(u)){
+    const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), 12000);
+    try{
+      const res = await fetch(r.f(u), {signal:ctrl.signal, cache:'no-store', referrerPolicy:'no-referrer'});
+      if(!res.ok) throw new Error('HTTP ' + res.status);
+      const text = decodeBuf(await res.arrayBuffer(), res.headers.get('content-type'));
+      if(!text || text.length < 60) throw new Error('пустой ответ');
+      META.route[hostOf(u)] = r.k;
+      return text;
+    }catch(e){ last = e.name === 'AbortError' ? new Error('сайт не ответил вовремя') : e instanceof TypeError ? new Error('сайт недоступен') : e; }
+    finally{ clearTimeout(t); }
+  }
+  throw last || new Error('нет доступа');
+}
+async function loadSource(src){
+  const f = parseFeed(await fetchText(src.url), src.url);
+  if(!f || !f.items.length) throw new Error('это не RSS');
+  return f;
+}
+async function probe(input){
+  let url = input.trim();
+  if(!/^https?:\/\//i.test(url)) url = 'https://' + url;
+  const text = await fetchText(url);
+  const f = parseFeed(text, url);
+  if(f && f.items.length) return {url, name: f.title || hostOf(url)};
+  const t = (text.match(/<title[^>]*>([^<]*)/i) || [])[1];
+  for(const fu of feedCandidates(text, url).slice(0, 6)){
+    try{
+      const f2 = parseFeed(await fetchText(fu), fu);
+      if(f2 && f2.items.length) return {url: fu, name: (f2.title || t || hostOf(url)).trim()};
+    }catch(e){}
+  }
+  throw new Error('RSS на сайте не найден');
+}
+
+/* ---------- refresh ---------- */
+let busy = false;
+async function pool(list, n, fn){
+  const q = list.slice(); const ws = [];
+  for(let i = 0; i < Math.min(n, q.length); i++) ws.push((async () => { while(q.length) await fn(q.shift()); })());
+  await Promise.all(ws);
+}
+function ingest(src, items){
+  let added = 0; const now = Date.now();
+  for(const it of items){
+    if(!it.title || !it.link) continue;
+    const link = cleanLink(it.link), id = hash(link);
+    let ts = Date.parse(it.date); if(!ts || ts > now + 3600e3) ts = now;
+    const ex = ITEMS[id];
+    if(ex){ if(!ex.img && it.img) ex.img = it.img; continue; }
+    ITEMS[id] = {id, src: src.id, title: it.title.slice(0, 300), link, sum: stripHtml(it.html).slice(0, 320), img: it.img || '', ts, seen: now};
+    added++;
+  }
+  return added;
+}
+function prune(){
+  const cut = Date.now() - (S.maxAgeDays + 1) * 864e5, ids = new Set(S.sources.map(s => s.id));
+  for(const id in ITEMS){ const i = ITEMS[id]; if(i.ts < cut || !ids.has(i.src)) delete ITEMS[id]; }
+  const keep = Object.values(ITEMS).sort((a, b) => b.ts - a.ts).slice(0, 1200);
+  ITEMS = Object.fromEntries(keep.map(i => [i.id, i]));
+  const old = Date.now() - 14 * 864e5;
+  for(const k of ['read', 'hidden']) for(const id in ST[k]) if(ST[k][id] < old) delete ST[k][id];
+}
+// новые источники и темы, добавленные в репозиторий, появляются у вас сами (удалённые вами — не возвращаются)
+function syncFromServer(srv){
+  let n = 0;
+  for(const s of srv.sources || []){
+    if(S.sources.some(x => x.url === s.url) || S.removedSources.includes(s.url)) continue;
+    S.sources.push({id: s.id, name: s.name, url: s.url, mode: s.mode, topic: s.topic, on: true}); n++;
+  }
+  for(const t of srv.topics || []){
+    if(S.topics.some(x => x.id === t.id) || S.removedTopics.includes(t.id)) continue;
+    S.topics.push({id: t.id, name: t.name, words: t.words, ctx: t.ctx || '', on: true}); n++;
+  }
+  return n;
+}
+async function fetchServer(){
+  try{
+    const r = await fetch('feed.json?t=' + Date.now(), {cache: 'no-store'});
+    if(r.ok) return await r.json();
+  }catch(e){}
+  return null;
+}
+async function refresh(manual){
+  if(busy || !S) return; busy = true;
+  $('#btnRefresh').classList.add('spin'); setProg(.04);
+  const srv = await fetchServer();
+  if(srv){ META.serverUpdated = Date.parse(srv.updated) || 0; if(syncFromServer(srv)) toast('Добавлены новые источники или темы'); }
+  setProg(.3);
+  const srcs = S.sources.filter(s => s.on); let done = 0, added = 0;
+  await pool(srcs, 4, async s => {
+    const sv = srv && srv.feeds && srv.feeds[s.url];
+    if(sv && sv.ok){
+      added += ingest(s, sv.items);
+      META.status[s.id] = {ok: true, n: sv.items.length, via: 'server', at: Date.now()};
+    }else{
+      try{
+        const f = await loadSource(s);
+        added += ingest(s, f.items);
+        META.status[s.id] = {ok: true, n: f.items.length, via: 'proxy', at: Date.now()};
+      }catch(e){
+        META.status[s.id] = {ok: false, err: (sv && sv.err ? 'сервер: ' + sv.err + '; телефон: ' : '') + (e.message || e), at: Date.now()};
+      }
+    }
+    setProg(.3 + .7 * (++done / srcs.length));
+  });
+  META.lastRefresh = Date.now();
+  prune(); saveAll(); render();
+  busy = false; $('#btnRefresh').classList.remove('spin'); setTimeout(() => setProg(0), 300);
+  if(manual) toast(added ? 'Новых материалов: ' + added : 'Новых материалов нет');
+}
+function setProg(p){ $('#prog').style.width = (p * 100) + '%'; }
+function staleCheck(){
+  if(S && document.visibilityState === 'visible' && Date.now() - META.lastRefresh > S.refreshMin * 60e3) refresh(false);
+}
+
+/* ---------- отбор ---------- */
+let view = {chip: 'all', src: null, limit: 40};
+function compiled(){
+  return {
+    topics: S.topics.filter(t => t.on).map(t => ({t, re: compileWords(t.words), ctx: compileWords(t.ctx)})).filter(x => x.re),
+    block: compileWords(S.block)
+  };
+}
+function visibleItems(){
+  const {topics, block} = compiled();
+  const srcMap = Object.fromEntries(S.sources.map(s => [s.id, s]));
+  const topicById = Object.fromEntries(S.topics.map(t => [t.id, t]));
+  const cut = Date.now() - S.maxAgeDays * 864e5;
+  const saved = view.chip === 'saved';
+  const pool = saved ? Object.values(ST.saved) : Object.values(ITEMS);
+  const list = [];
+  for(const it of pool){
+    const src = srcMap[it.src];
+    const text = it.title + ' \n ' + it.sum;
+    const tp = topics.filter(x => x.re.test(text) && (!x.ctx || x.ctx.test(text))).map(x => x.t);
+    let srcTopic = null;
+    if(src && src.mode === 'all' && src.topic){
+      srcTopic = topicById[src.topic];
+      if(srcTopic && srcTopic.on && !tp.includes(srcTopic)) tp.unshift(srcTopic);
+    }
+    if(!saved){
+      if(!src || !src.on || it.ts < cut || ST.hidden[it.id]) continue;
+      if(block && block.test(text)) continue;
+      if(src.mode === 'all'){ if(srcTopic && !srcTopic.on) continue; }
+      else if(!tp.length) continue;
+      if(S.hideRead && ST.read[it.id]) continue;
+      if(view.chip !== 'all' && !tp.some(t => t.id === view.chip)) continue;
+      if(view.src && it.src !== view.src) continue;
+    }
+    list.push({...it, _tp: tp, _src: src});
+  }
+  list.sort((a, b) => b.ts - a.ts);
+  const seen = new Map(), out = [];
+  for(const it of list){
+    const k = titleKey(it.title);
+    const prev = k.length > 20 && seen.get(k);
+    if(prev){
+      if(it._src && it._src !== prev._src && !prev._also.includes(it._src.name)) prev._also.push(it._src.name);
+      if(!prev.img && it.img) prev.img = it.img;
+      continue;
+    }
+    it._also = []; seen.set(k, it); out.push(it);
+  }
+  return out;
+}
+
+const ICON = {
+  save: '<svg viewBox="0 0 24 24"><path d="M6 4h12v17l-6-4-6 4z"/></svg>',
+  more: '<svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></svg>',
+};
+function cardHTML(it, big){
+  const srcName = it._src ? it._src.name : 'Источник удалён';
+  const host = hostOf(it.link);
+  const img = S.images && it.img ? esc(it.img) : '';
+  const cls = ['card', big ? 'big' : '', ST.read[it.id] ? 'read' : ''].join(' ');
+  const fresh = prevVisit && it.seen > prevVisit && !ST.read[it.id];
+  const hit = big
+    ? `<a class="hit" href="${esc(it.link)}" target="_blank" rel="noopener" data-open="${it.id}">
+         ${img ? `<img class="cover" src="${img}" loading="lazy" referrerpolicy="no-referrer" alt="" onerror="this.remove()">` : ''}
+         <div class="body"><h2>${esc(it.title)}</h2>${it.sum ? `<p>${esc(it.sum)}</p>` : ''}</div></a>`
+    : `<a class="hit row" href="${esc(it.link)}" target="_blank" rel="noopener" data-open="${it.id}">
+         <div class="body"><h2>${esc(it.title)}</h2></div>
+         ${img ? `<img class="thumb" src="${img}" loading="lazy" referrerpolicy="no-referrer" alt="" onerror="this.remove()">` : ''}</a>`;
+  const tags = it._tp.length ? `<div class="tags">${it._tp.map(t => `<span class="tag">${esc(t.name)}</span>`).join('')}</div>` : '';
+  return `<article class="${cls}" data-id="${it.id}">${hit}${tags}
+    <div class="meta">
+      <img class="fav" src="https://icons.duckduckgo.com/ip3/${esc(host)}.ico" alt="" loading="lazy" onerror="this.style.visibility='hidden'">
+      <button class="src" data-src="${it._src ? it._src.id : ''}">${esc(srcName)}</button>
+      ${it._also.length ? `<span class="also">${it._also.length === 1 ? 'и ' + esc(it._also[0]) : 'и ещё ' + it._also.length}</span>` : ''}
+      <span>·</span><time>${rel(it.ts)}</time>${fresh ? '<i class="new" title="Новое"></i>' : ''}
+      <span class="sp"></span>
+      <button class="iconbtn ${ST.saved[it.id] ? 'on' : ''}" data-save="${it.id}" aria-label="Сохранить">${ICON.save}</button>
+      <button class="iconbtn" data-more="${it.id}" aria-label="Ещё">${ICON.more}</button>
+    </div></article>`;
+}
+
+let lastList = [];
+function render(){
+  if(!S){ $('#feed').innerHTML = `<div class="empty"><b>Нет связи</b>Для первого запуска нужен интернет.</div>`; return; }
+  renderChips(); renderStatus();
+  const list = lastList = visibleItems();
+  let html = '';
+  if(view.src){
+    const s = S.sources.find(x => x.id === view.src);
+    html += `<div class="filterbar"><span>Только: <b>${esc(s ? s.name : '')}</b></span><button data-clearsrc>Сбросить</button></div>`;
+  }
+  if(!list.length){
+    html += view.chip === 'saved'
+      ? `<div class="empty"><b>Сохранённого пока нет</b>Нажмите на закладку у новости, чтобы отложить её сюда.</div>`
+      : `<div class="empty"><b>${Object.keys(ITEMS).length ? 'Под фильтры ничего не попало' : 'Пока пусто'}</b>${busy ? 'Загружаю источники…' : 'Обновите ленту или проверьте источники и темы в настройках.'}</div>`;
+  }else{
+    let heroUsed = false;
+    html += list.slice(0, view.limit).map(it => {
+      let big = S.layout === 'big';
+      if(!big && !heroUsed && S.images && it.img){ big = true; heroUsed = true; }
+      return cardHTML(it, big);
+    }).join('');
+    if(list.length > view.limit) html += `<button class="more" data-more-list>Показать ещё (${list.length - view.limit})</button>`;
+  }
+  $('#feed').innerHTML = html;
+}
+function renderChips(){
+  const chips = [{id:'all', name:'Все'}, ...S.topics.filter(t => t.on).map(t => ({id:t.id, name:t.name})),
+                 {id:'saved', name:'Сохранённое', n: Object.keys(ST.saved).length || ''}];
+  if(!chips.some(c => c.id === view.chip)) view.chip = 'all';
+  $('#chips').innerHTML = chips.map(c => `<button class="chip" data-chip="${esc(c.id)}" aria-pressed="${view.chip === c.id}">${esc(c.name)}${c.n ? `<span class="n">${c.n}</span>` : ''}</button>`).join('');
+}
+function renderStatus(){
+  const bad = S.sources.filter(s => s.on && META.status[s.id] && !META.status[s.id].ok).length;
+  const ts = Math.max(META.serverUpdated || 0, 0) || META.lastRefresh;
+  const when = ts ? 'собрано ' + (rel(ts) === 'сейчас' ? 'только что' : rel(ts) + ' назад') : 'ещё не обновлялось';
+  $('#status').innerHTML = esc(when) + (bad ? ` · <span class="bad">не отвечают: ${bad}</span>` : '');
+}
+
+/* ---------- feed events ---------- */
+$('#chips').addEventListener('click', e => {
+  const b = e.target.closest('[data-chip]'); if(!b) return;
+  view.chip = b.dataset.chip; view.limit = 40; render(); scrollTo({top: 0});
+  b.scrollIntoView({inline: 'nearest', block: 'nearest'});
+});
+$('#feed').addEventListener('click', e => {
+  const o = e.target.closest('[data-open]');
+  if(o){ ST.read[o.dataset.open] = Date.now(); saveAll(); setTimeout(() => o.closest('.card')?.classList.add('read'), 400); return; }
+  const sv = e.target.closest('[data-save]');
+  if(sv){ toggleSave(sv.dataset.save); sv.classList.toggle('on', !!ST.saved[sv.dataset.save]); renderChips(); return; }
+  const m = e.target.closest('[data-more]'); if(m){ openActions(m.dataset.more); return; }
+  const s = e.target.closest('[data-src]'); if(s && s.dataset.src){ view.src = s.dataset.src; view.chip = 'all'; view.limit = 40; render(); scrollTo({top:0}); return; }
+  if(e.target.closest('[data-clearsrc]')){ view.src = null; render(); return; }
+  if(e.target.closest('[data-more-list]')){ view.limit += 40; render(); }
+});
+function findItem(id){ return lastList.find(i => i.id === id) || ITEMS[id] || ST.saved[id]; }
+function toggleSave(id){
+  if(ST.saved[id]) delete ST.saved[id];
+  else { const it = findItem(id); if(it){ const {_tp, _src, _also, ...plain} = it; ST.saved[id] = plain; } }
+  saveAll();
+}
+
+function openActions(id){
+  const it = findItem(id); if(!it) return;
+  const src = S.sources.find(s => s.id === it.src);
+  const a = $('#actions');
+  a.innerHTML = `<div class="ttl">${esc(it.title)}</div>
+    ${navigator.share ? '<button data-act="share">Поделиться</button>' : '<button data-act="copy">Скопировать ссылку</button>'}
+    <button data-act="hide">Скрыть эту новость</button>
+    <button data-act="stop">Не показывать новости со словом…</button>
+    ${src ? `<button data-act="src">Отключить источник «${esc(src.name)}»</button>` : ''}
+    <button data-act="cancel" style="color:var(--muted)">Отмена</button>`;
+  a.dataset.id = id; a.classList.add('open'); $('#scrim').classList.add('open');
+}
+function closeActions(){ $('#actions').classList.remove('open'); if(!$('#sheet').classList.contains('open')) $('#scrim').classList.remove('open'); }
+$('#scrim').addEventListener('click', closeActions);
+$('#actions').addEventListener('click', async e => {
+  const b = e.target.closest('[data-act]'); if(!b) return;
+  const id = $('#actions').dataset.id, it = findItem(id), act = b.dataset.act;
+  closeActions();
+  if(!it) return;
+  if(act === 'share'){ try{ await navigator.share({title: it.title, url: it.link}); }catch(e){} }
+  if(act === 'copy'){ try{ await navigator.clipboard.writeText(it.link); toast('Ссылка скопирована'); }catch(e){} }
+  if(act === 'hide'){ ST.hidden[id] = Date.now(); delete ST.saved[id]; saveAll(); render(); toast('Скрыто'); }
+  if(act === 'stop'){
+    const w = prompt('Слово или его начало. Новости с ним больше не покажутся:', '');
+    if(w && w.trim()){ S.block = (S.block ? S.block + ', ' : '') + w.trim(); saveAll(); render(); toast('Стоп-слово добавлено'); }
+  }
+  if(act === 'src'){ const s = S.sources.find(x => x.id === it.src); if(s){ s.on = false; saveAll(); render(); toast('Источник отключён — включить можно в настройках'); } }
+});
+
+/* pull to refresh */
+(() => {
+  let y0 = null, dy = 0; const ptr = $('#ptr');
+  addEventListener('touchstart', e => { if(scrollY <= 0 && !$('#sheet').classList.contains('open')){ y0 = e.touches[0].clientY; dy = 0; } }, {passive: true});
+  addEventListener('touchmove', e => {
+    if(y0 === null) return; dy = e.touches[0].clientY - y0;
+    if(dy > 0 && scrollY <= 0){ ptr.style.height = Math.min(dy * .45, 56) + 'px'; ptr.textContent = dy > 110 ? 'Отпустите, чтобы обновить' : 'Потяните вниз'; }
+  }, {passive: true});
+  addEventListener('touchend', () => { if(y0 !== null && dy > 110) refresh(true); y0 = null; ptr.style.height = 0; });
+})();
+
+$('#btnRefresh').addEventListener('click', () => refresh(true));
+$('#status').addEventListener('click', () => openSheet('sources'));
+
+/* ---------- settings ---------- */
+let tab = 'sources', dirty = false;
+function openSheet(t){ if(!S) return; tab = t || tab; renderPane(); $('#sheet').classList.add('open'); $('#scrim').classList.add('open'); history.pushState({sheet: 1}, ''); }
+function closeSheet(){
+  $('#sheet').classList.remove('open'); $('#scrim').classList.remove('open');
+  if(dirty){ dirty = false; saveAll(); render(); refresh(false); } else render();
+}
+$('#btnSettings').addEventListener('click', () => openSheet());
+$('#btnDone').addEventListener('click', () => history.state && history.state.sheet ? history.back() : closeSheet());
+addEventListener('popstate', () => { if($('#sheet').classList.contains('open')) closeSheet(); else if($('#actions').classList.contains('open')) closeActions(); });
+$('#tabs').addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if(b){ tab = b.dataset.tab; renderPane(); } });
+
+function sw(cls, on, id){ return `<label class="switch"><input type="checkbox" ${cls ? `class="${cls}"` : ''} ${id ? `id="${id}"` : ''} ${on ? 'checked' : ''}><i></i></label>`; }
+function modeSelect(s){
+  const v = s.mode === 'all' ? 'all:' + (s.topic || '') : 'topics';
+  const opts = [['topics', 'По темам'], ...S.topics.map(t => ['all:' + t.id, 'Всё → ' + t.name]), ['all:', 'Всё, без темы']];
+  return `<select class="in" data-f="mode">${opts.map(([k, n]) => `<option value="${esc(k)}" ${k === v ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select>`;
+}
+function renderPane(){
+  document.querySelectorAll('#tabs [data-tab]').forEach(b => b.setAttribute('aria-pressed', b.dataset.tab === tab));
+  const p = $('#pane'); let h = '';
+  if(tab === 'sources'){
+    h += `<div class="box"><div class="r1"><input class="in grow" id="newSrc" placeholder="Адрес сайта или RSS" inputmode="url" autocapitalize="off" autocomplete="off"><button class="btn primary" id="addSrc">Добавить</button></div>
+      <div class="hint" style="margin:8px 2px 0">Можно вставить просто адрес сайта — лента найдёт его RSS сама.</div></div>
+      <p class="hint">«По темам» — из источника попадает только то, что совпало с вашими темами. «Всё → тема» — источник идёт целиком и сразу относится к этой теме: подходит узким изданиям.</p>`;
+    h += S.sources.map(s => {
+      const st = META.status[s.id];
+      const sub = !st ? hostOf(s.url) || s.url : st.ok ? `${hostOf(s.url)} · ${st.n} шт.${st.via === 'proxy' ? ' · через прокси' : ''}` : `ошибка: ${st.err}`;
+      return `<div class="box" data-sid="${s.id}">
+        <div class="r1"><span class="dot ${st ? (st.ok ? 'ok' : 'err') : ''}"></span><input class="in name grow" value="${esc(s.name)}" data-f="name">${sw('s-on', s.on)}</div>
+        <div class="r2"><span class="sub" title="${esc(s.url)}">${esc(sub)}</span>${modeSelect(s)}
+          <button class="btn ghost" data-del-src aria-label="Удалить">✕</button></div></div>`;
+    }).join('');
+  }
+  if(tab === 'topics'){
+    h += `<p class="hint">Слова через запятую. Слово ищется по началу: <code>девелоп</code> найдёт «девелопер», «девелопмента». Короткие (до 3 букв) и слова с <code>!</code> на конце — целиком. Аббревиатуры заглавными (<code>ИИ</code>, <code>PR</code>, <code>IT</code>) — с учётом регистра. Фраза <code>рекламн агентств</code> найдёт «рекламное агентство».</p>
+      <p class="hint">Второе поле сужает тему: материал попадёт в неё, только если в нём есть ещё и одно из этих слов. Пусто — без сужения.</p>`;
+    h += S.topics.map(t => `<div class="box" data-tid="${esc(t.id)}">
+        <div class="r1"><input class="in name grow" value="${esc(t.name)}" data-f="name">${sw('t-on', t.on)}<button class="btn ghost" data-del-topic aria-label="Удалить">✕</button></div>
+        <textarea class="in" data-f="words" style="margin-top:8px" placeholder="слова темы">${esc(t.words)}</textarea>
+        <textarea class="in" data-f="ctx" style="margin-top:8px;min-height:56px" placeholder="и обязательно одно из (необязательно)">${esc(t.ctx || '')}</textarea></div>`).join('');
+    h += `<button class="btn" id="addTopic" style="width:100%">+ Новая тема</button>`;
+  }
+  if(tab === 'filters'){
+    h += `<div class="field"><label>Стоп-слова</label><textarea class="in" id="fBlock" placeholder="через запятую">${esc(S.block)}</textarea>
+        <div class="hint">Новости с этими словами не показываются нигде. Правила те же, что у тем.</div></div>
+      <div class="field"><label>Показывать за последние</label>
+        <select class="in" id="fAge">${[1,2,3,5,7].map(d => `<option value="${d}" ${S.maxAgeDays == d ? 'selected' : ''}>${d} ${d === 1 ? 'день' : d < 5 ? 'дня' : 'дней'}</option>`).join('')}</select></div>
+      <div class="box">
+        <label class="check"><span class="grow">Скрывать прочитанное</span>${sw('', S.hideRead, 'fRead')}</label>
+        <label class="check"><span class="grow">Показывать картинки</span>${sw('', S.images, 'fImg')}</label>
+        <label class="check"><span class="grow">Крупные карточки</span>${sw('', S.layout === 'big', 'fBig')}</label>
+      </div>
+      <button class="btn" id="unhide" style="width:100%">Вернуть скрытые новости (${Object.keys(ST.hidden).length})</button>`;
+  }
+  if(tab === 'more'){
+    h += `<div class="field"><label>Автообновление</label>
+        <select class="in" id="fRef">${[5,10,15,30,60].map(m => `<option value="${m}" ${S.refreshMin == m ? 'selected' : ''}>каждые ${m} мин</option>`).join('')}</select>
+        <div class="hint">Сервер собирает источники примерно каждые 20 минут. Телефон забирает свежую сборку, пока лента открыта, и сразу при возвращении в приложение.</div></div>
+      <div class="field"><label>Свой прокси (необязательно)</label>
+        <input class="in" id="fProxy" value="${esc(S.proxy)}" placeholder="https://имя.workers.dev/?url=" autocapitalize="off" inputmode="url">
+        <div class="hint">Нужен только для источников, добавленных с телефона: они загружаются через публичные прокси. Если те сбоят — разверните свой по инструкции в <code>cors-worker.js</code>.</div></div>
+      <div class="field"><label>Перенос настроек</label>
+        <div class="r1"><button class="btn grow" id="exp">Сохранить в файл</button><button class="btn grow" id="imp">Загрузить из файла</button></div>
+        <input type="file" id="impFile" accept="application/json,.json" hidden></div>
+      <div class="field"><label>Сброс</label>
+        <div class="r1"><button class="btn grow" id="clearCache">Очистить загруженное</button><button class="btn grow" id="reset" style="color:var(--err)">Настройки по умолчанию</button></div></div>`;
+  }
+  p.innerHTML = h;
+}
+
+$('#pane').addEventListener('input', e => {
+  const el = e.target, f = el.dataset.f;
+  const sb = el.closest('[data-sid]'), tb = el.closest('[data-tid]');
+  if(sb && f && f !== 'mode'){ S.sources.find(x => x.id === sb.dataset.sid)[f] = el.value; }
+  if(tb && f){ S.topics.find(x => x.id === tb.dataset.tid)[f] = el.value; }
+  if(el.id === 'fBlock') S.block = el.value;
+  if(el.id === 'fProxy') S.proxy = el.value.trim();
+  dirty = true; LS.set(K.settings, S);
+});
+$('#pane').addEventListener('change', e => {
+  const el = e.target;
+  const sb = el.closest('[data-sid]'), tb = el.closest('[data-tid]');
+  if(sb && el.dataset.f === 'mode'){
+    const s = S.sources.find(x => x.id === sb.dataset.sid);
+    if(el.value === 'topics'){ s.mode = 'topics'; s.topic = ''; } else { s.mode = 'all'; s.topic = el.value.slice(4); }
+  }
+  if(el.classList.contains('s-on')) S.sources.find(x => x.id === sb.dataset.sid).on = el.checked;
+  if(el.classList.contains('t-on')) S.topics.find(x => x.id === tb.dataset.tid).on = el.checked;
+  if(el.id === 'fAge') S.maxAgeDays = +el.value;
+  if(el.id === 'fRef') S.refreshMin = +el.value;
+  if(el.id === 'fRead') S.hideRead = el.checked;
+  if(el.id === 'fImg') S.images = el.checked;
+  if(el.id === 'fBig') S.layout = el.checked ? 'big' : 'compact';
+  if(el.id === 'impFile' && el.files[0]) importFile(el.files[0]);
+  dirty = true; LS.set(K.settings, S);
+});
+$('#pane').addEventListener('click', async e => {
+  const t = e.target;
+  if(t.id === 'addSrc'){
+    const inp = $('#newSrc'), v = inp.value.trim(); if(!v) return;
+    t.disabled = true; t.textContent = 'Ищу…';
+    try{
+      const r = await probe(v);
+      if(S.sources.some(s => s.url === r.url)) toast('Этот источник уже есть');
+      else {
+        S.sources.unshift({id: hash(r.url), on: true, mode: 'topics', topic: '', name: r.name.slice(0, 60), url: r.url});
+        S.removedSources = S.removedSources.filter(u => u !== r.url);
+        dirty = true; LS.set(K.settings, S); toast('Добавлено: ' + r.name); renderPane();
+      }
+    }catch(err){ toast('Не получилось: ' + (err.message || err)); t.disabled = false; t.textContent = 'Добавить'; }
+    return;
+  }
+  if(t.closest('[data-del-src]')){
+    const id = t.closest('[data-sid]').dataset.sid, s = S.sources.find(x => x.id === id);
+    if(confirm(`Удалить «${s.name}»?`)){ S.sources = S.sources.filter(x => x.id !== id); S.removedSources.push(s.url); delete META.status[id]; dirty = true; LS.set(K.settings, S); renderPane(); }
+    return;
+  }
+  if(t.closest('[data-del-topic]')){
+    const id = t.closest('[data-tid]').dataset.tid, x = S.topics.find(y => y.id === id);
+    if(confirm(`Удалить тему «${x.name}»?`)){ S.topics = S.topics.filter(y => y.id !== id); S.removedTopics.push(id); dirty = true; LS.set(K.settings, S); renderPane(); }
+    return;
+  }
+  if(t.id === 'addTopic'){ S.topics.push({id: 'u' + uid(), on: true, name: 'Новая тема', words: '', ctx: ''}); dirty = true; LS.set(K.settings, S); renderPane(); $('#pane').scrollTo({top: 1e6, behavior: 'smooth'}); return; }
+  if(t.id === 'unhide'){ ST.hidden = {}; saveAll(); dirty = true; renderPane(); toast('Скрытые новости вернутся в ленту'); return; }
+  if(t.id === 'exp'){
+    const blob = new Blob([JSON.stringify({app: 'otbor', v: 2, settings: S}, null, 2)], {type: 'application/json'});
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'otbor-nastroiki.json'; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000); return;
+  }
+  if(t.id === 'imp'){ $('#impFile').click(); return; }
+  if(t.id === 'clearCache'){ if(confirm('Удалить загруженные новости? Они загрузятся заново.')){ ITEMS = {}; META.status = {}; META.lastRefresh = 0; saveAll(); dirty = true; toast('Очищено'); } return; }
+  if(t.id === 'reset'){
+    if(!confirm('Вернуть стартовые источники и темы? Ваши изменения пропадут.')) return;
+    try{ const c = await (await fetch('config.json?t=' + Date.now(), {cache: 'no-store'})).json(); S = fromConfig(c); ITEMS = {}; META.status = {}; saveAll(); dirty = true; renderPane(); toast('Настройки сброшены'); }
+    catch(err){ toast('Нет связи — попробуйте позже'); }
+  }
+});
+async function importFile(file){
+  try{
+    const d = JSON.parse(await file.text()), n = d.settings || d;
+    if(!Array.isArray(n.sources) || !Array.isArray(n.topics)) throw new Error('формат');
+    S = Object.assign({removedSources: [], removedTopics: []}, DISPLAY_DEFAULTS, n); dirty = true; saveAll(); renderPane(); toast('Настройки загружены');
+  }catch(e){ toast('Файл не подошёл'); }
+}
+$('#pane').addEventListener('keydown', e => { if(e.target.id === 'newSrc' && e.key === 'Enter') $('#addSrc').click(); });
+
+/* ---------- misc ---------- */
+let toastT;
+function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2600); }
+
+document.addEventListener('visibilitychange', staleCheck);
+setInterval(() => { staleCheck(); if(S) renderStatus(); }, 60e3);
+if('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+
+(async function init(){
+  if(!S){
+    try{ const c = await (await fetch('config.json?t=' + Date.now(), {cache: 'no-store'})).json(); S = fromConfig(c); }
+    catch(e){ render(); return; }
+  }
+  saveAll(); render();
+  if(Date.now() - META.lastRefresh > 2 * 60e3) refresh(false);
+})();
+</script>
+</body>
+</html>

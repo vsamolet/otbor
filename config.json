@@ -1,0 +1,342 @@
+{
+ "topics": [
+  {
+   "id": "ai",
+   "name": "ИИ",
+   "words": "ИИ, искусственн интеллект, нейросет, машинн обучен, генеративн, LLM, GPT, ChatGPT, OpenAI, Anthropic, Claude, Gemini, DeepMind, Llama, Mistral, Grok, Copilot, GigaChat, YandexGPT, AI, artificial intelligence, machine learning, neural, chatbot, чат-бот, AGI",
+   "ctx": ""
+  },
+  {
+   "id": "tech",
+   "name": "Технологии и бизнес",
+   "words": "технолог, стартап, IT, ИТ, айти, софт, программн обеспечен, облачн, кибербезопас, полупроводник, микросхем, чип, процессор, дата-центр, ЦОД, венчур, финтех, маркетплейс, Apple, Microsoft, Google, Alphabet, Amazon, Meta, Nvidia, Tesla, Samsung, Huawei, Яндекс, VK, Ozon, Wildberries, tech, startup, software, cloud, semiconductor, cybersecurity, venture, funding round, IPO, Big Tech",
+   "ctx": ""
+  },
+  {
+   "id": "mobile",
+   "name": "Смартфоны и гаджеты",
+   "words": "смартфон, Galaxy, iPhone, iPad, Pixel, Xiaomi, OnePlus, Android, iOS, One UI, HyperOS, планшет, умн часы, носим, складн, Snapdragon, Exynos, MediaTek, гаджет, smartphone, tablet, wearable, smartwatch, foldable, earbuds",
+   "ctx": ""
+  },
+  {
+   "id": "adpr",
+   "name": "Реклама и PR",
+   "words": "реклам, PR, пиар, коммуникацион, медиарын, медиабаинг, маркетинг, бренд, рекламн агентств, коммуникационн агентств, креативн агентств, АКАР, Mediascope, Медиаскоп, WPP, Omnicom, Publicis, Interpublic, IPG, Dentsu, Havas, advertis, adtech, ad tech, ad agenc, creative agenc, media agenc, PR agenc, marketing, public relations, media buying, holding company",
+   "ctx": "рынок, рынк, объем, оборот, выручк, доход, бюджет, рост, вырос, сниз, падени, прогноз, исследован, опрос, аудитор, охват, доля, слиян, поглощ, сделк, купил, покупк, приобрет, продал, закры, банкрот, уход, сокращ, стратег, рейтинг, тендер, ИИ, нейросет, генеративн, AI, market, revenue, spend, forecast, growth, declin, research, survey, study, audience, merger, acquisition, acquir, deal, buys, sold, shut, closes, closing, layoff, strategy, ranking, pitch, report"
+  },
+  {
+   "id": "wh40k",
+   "name": "Warhammer 40K",
+   "words": "Warhammer, Вархаммер, 40k, 40к, Space Marine, космодесант, Adeptus, Astartes, Астартес, Imperium of Man, Империум, Horus Heresy, Ересь Хоруса, Black Library, Games Workshop, Necron, Tyranid, Тиранид, Darktide, Rogue Trader, Dawn of War, Boltgun",
+   "ctx": ""
+  },
+  {
+   "id": "cp2077",
+   "name": "Cyberpunk 2077",
+   "words": "Cyberpunk, Киберпанк, Night City, Найт-Сити, Phantom Liberty, Призрачная свобода, CD Projekt, CDPR, Edgerunners, Project Orion",
+   "ctx": ""
+  },
+  {
+   "id": "scifi",
+   "name": "Фантастика, книги, кино",
+   "words": "фантаст, фэнтези, sci-fi, science fiction, fantasy, книг, писател, литератур, экранизац, фильм, кино, сериал, режисс, трейлер, Стругацк, Азимов, Лем, Гибсон, Херберт, Дюна, novel, book, author, writer, literature, adaptation, film, movie, cinema, TV series, trailer, box office, Hugo Award, Nebula Award",
+   "ctx": ""
+  }
+ ],
+ "block": "гороскоп, астролог, мошенни, ДТП, погода на",
+ "sources": [
+  {
+   "name": "Хабр · ИИ",
+   "url": "https://habr.com/ru/rss/hubs/artificial_intelligence/articles/",
+   "site": "https://habr.com/ru/hubs/artificial_intelligence/",
+   "mode": "all",
+   "topic": "ai"
+  },
+  {
+   "name": "The Decoder",
+   "url": "https://the-decoder.com/feed/",
+   "site": "https://the-decoder.com",
+   "mode": "all",
+   "topic": "ai"
+  },
+  {
+   "name": "VentureBeat AI",
+   "url": "https://venturebeat.com/category/ai/feed/",
+   "site": "https://venturebeat.com/category/ai/",
+   "mode": "all",
+   "topic": "ai"
+  },
+  {
+   "name": "MIT Technology Review",
+   "url": "https://www.technologyreview.com/feed/",
+   "site": "https://www.technologyreview.com",
+   "mode": "topics"
+  },
+  {
+   "name": "vc.ru",
+   "url": "https://vc.ru/rss/all",
+   "site": "https://vc.ru",
+   "mode": "topics"
+  },
+  {
+   "name": "CNews",
+   "url": "https://www.cnews.ru/inc/rss/news.xml",
+   "site": "https://www.cnews.ru",
+   "mode": "topics"
+  },
+  {
+   "name": "RB.ru",
+   "url": "https://rb.ru/feeds/all/",
+   "site": "https://rb.ru",
+   "mode": "topics"
+  },
+  {
+   "name": "3DNews",
+   "url": "https://3dnews.ru/news/rss/",
+   "site": "https://3dnews.ru",
+   "mode": "topics"
+  },
+  {
+   "name": "TechCrunch",
+   "url": "https://techcrunch.com/feed/",
+   "site": "https://techcrunch.com",
+   "mode": "topics"
+  },
+  {
+   "name": "The Verge",
+   "url": "https://www.theverge.com/rss/index.xml",
+   "site": "https://www.theverge.com",
+   "mode": "topics"
+  },
+  {
+   "name": "Ars Technica",
+   "url": "https://feeds.arstechnica.com/arstechnica/index",
+   "site": "https://arstechnica.com",
+   "mode": "topics"
+  },
+  {
+   "name": "4PDA",
+   "url": "https://4pda.to/feed/",
+   "site": "https://4pda.to",
+   "mode": "topics"
+  },
+  {
+   "name": "iXBT",
+   "url": "https://www.ixbt.com/export/news.rss",
+   "site": "https://www.ixbt.com",
+   "mode": "topics"
+  },
+  {
+   "name": "Mobile-review",
+   "url": "https://mobile-review.com/all/feed/",
+   "site": "https://mobile-review.com",
+   "mode": "topics"
+  },
+  {
+   "name": "GSMArena",
+   "url": "https://www.gsmarena.com/rss-news-reviews.php3",
+   "site": "https://www.gsmarena.com",
+   "mode": "all",
+   "topic": "mobile"
+  },
+  {
+   "name": "SamMobile",
+   "url": "https://www.sammobile.com/feed/",
+   "site": "https://www.sammobile.com",
+   "mode": "all",
+   "topic": "mobile"
+  },
+  {
+   "name": "Android Authority",
+   "url": "https://www.androidauthority.com/feed/",
+   "site": "https://www.androidauthority.com",
+   "mode": "topics"
+  },
+  {
+   "name": "Sostav",
+   "url": "https://www.sostav.ru/rss",
+   "site": "https://www.sostav.ru",
+   "mode": "topics"
+  },
+  {
+   "name": "AdIndex",
+   "url": "https://adindex.ru/rss/",
+   "site": "https://adindex.ru",
+   "mode": "topics"
+  },
+  {
+   "name": "Cossa",
+   "url": "https://www.cossa.ru/rss/",
+   "site": "https://www.cossa.ru",
+   "mode": "topics"
+  },
+  {
+   "name": "Adweek",
+   "url": "https://www.adweek.com/feed/",
+   "site": "https://www.adweek.com",
+   "mode": "topics"
+  },
+  {
+   "name": "Digiday",
+   "url": "https://digiday.com/feed/",
+   "site": "https://digiday.com",
+   "mode": "topics"
+  },
+  {
+   "name": "PRWeek",
+   "url": "https://www.prweek.com/rss",
+   "site": "https://www.prweek.com",
+   "mode": "topics"
+  },
+  {
+   "name": "Campaign",
+   "url": "https://www.campaignlive.co.uk/rss/news",
+   "site": "https://www.campaignlive.co.uk",
+   "mode": "topics"
+  },
+  {
+   "name": "PR Daily",
+   "url": "https://www.prdaily.com/feed/",
+   "site": "https://www.prdaily.com",
+   "mode": "topics"
+  },
+  {
+   "name": "Коммерсантъ",
+   "url": "https://www.kommersant.ru/RSS/news.xml",
+   "site": "https://www.kommersant.ru",
+   "mode": "topics"
+  },
+  {
+   "name": "Ведомости",
+   "url": "https://www.vedomosti.ru/rss/news",
+   "site": "https://www.vedomosti.ru",
+   "mode": "topics"
+  },
+  {
+   "name": "РБК",
+   "url": "https://rssexport.rbc.ru/rbcnews/news/30/full.rss",
+   "site": "https://www.rbc.ru",
+   "mode": "topics"
+  },
+  {
+   "name": "Warhammer Community",
+   "url": "https://www.warhammer-community.com/feed/",
+   "site": "https://www.warhammer-community.com",
+   "mode": "topics"
+  },
+  {
+   "name": "Goonhammer",
+   "url": "https://www.goonhammer.com/feed/",
+   "site": "https://www.goonhammer.com",
+   "mode": "topics"
+  },
+  {
+   "name": "Bell of Lost Souls",
+   "url": "https://www.belloflostsouls.net/feed",
+   "site": "https://www.belloflostsouls.net",
+   "mode": "topics"
+  },
+  {
+   "name": "Spikey Bits",
+   "url": "https://spikeybits.com/feed/",
+   "site": "https://spikeybits.com",
+   "mode": "topics"
+  },
+  {
+   "name": "r/Warhammer40k",
+   "url": "https://www.reddit.com/r/Warhammer40k/top/.rss?t=day",
+   "site": "",
+   "mode": "all",
+   "topic": "wh40k"
+  },
+  {
+   "name": "r/cyberpunkgame",
+   "url": "https://www.reddit.com/r/cyberpunkgame/top/.rss?t=day",
+   "site": "",
+   "mode": "all",
+   "topic": "cp2077"
+  },
+  {
+   "name": "DTF",
+   "url": "https://dtf.ru/rss/all",
+   "site": "https://dtf.ru",
+   "mode": "topics"
+  },
+  {
+   "name": "StopGame",
+   "url": "https://stopgame.ru/rss/rss_news.xml",
+   "site": "https://stopgame.ru",
+   "mode": "topics"
+  },
+  {
+   "name": "PC Gamer",
+   "url": "https://www.pcgamer.com/rss/",
+   "site": "https://www.pcgamer.com",
+   "mode": "topics"
+  },
+  {
+   "name": "Rock Paper Shotgun",
+   "url": "https://www.rockpapershotgun.com/feed",
+   "site": "https://www.rockpapershotgun.com",
+   "mode": "topics"
+  },
+  {
+   "name": "Мир фантастики",
+   "url": "https://www.mirf.ru/feed/",
+   "site": "https://www.mirf.ru",
+   "mode": "all",
+   "topic": "scifi"
+  },
+  {
+   "name": "Горький",
+   "url": "https://gorky.media/feed/",
+   "site": "https://gorky.media",
+   "mode": "all",
+   "topic": "scifi"
+  },
+  {
+   "name": "Кинопоиск Медиа",
+   "url": "https://www.kinopoisk.ru/media/rss/",
+   "site": "https://www.kinopoisk.ru/media/",
+   "mode": "topics"
+  },
+  {
+   "name": "Film.ru",
+   "url": "https://www.film.ru/rss.xml",
+   "site": "https://www.film.ru",
+   "mode": "topics"
+  },
+  {
+   "name": "Reactor",
+   "url": "https://reactormag.com/feed/",
+   "site": "https://reactormag.com",
+   "mode": "all",
+   "topic": "scifi"
+  },
+  {
+   "name": "Locus",
+   "url": "https://locusmag.com/feed/",
+   "site": "https://locusmag.com",
+   "mode": "all",
+   "topic": "scifi"
+  },
+  {
+   "name": "Gizmodo",
+   "url": "https://gizmodo.com/feed",
+   "site": "https://gizmodo.com",
+   "mode": "topics"
+  },
+  {
+   "name": "/Film",
+   "url": "https://www.slashfilm.com/feed/",
+   "site": "https://www.slashfilm.com",
+   "mode": "topics"
+  },
+  {
+   "name": "Den of Geek",
+   "url": "https://www.denofgeek.com/feed/",
+   "site": "https://www.denofgeek.com",
+   "mode": "topics"
+  }
+ ]
+}

@@ -1,0 +1,16 @@
+{
+  "name": "otbor",
+  "private": true,
+  "type": "module",
+  "description": "Отбор — своя лента новостей по выбранным источникам и темам",
+  "scripts": {
+    "build": "node scripts/build-feed.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "he": "^2.0.0",
+    "linkedom": "^0.18.14"
+  }
+}
