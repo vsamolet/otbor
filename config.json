@@ -164,14 +164,9 @@
   },
   {
    "name": "AdIndex",
-   "url": "https://adindex.ru/rss/",
+   "url": "https://adindex.ru/news/news.rss",
    "site": "https://adindex.ru",
-   "mode": "topics",
-   "alt": [
-    "https://adindex.ru/rss/news.xml",
-    "https://adindex.ru/rss.xml",
-    "https://adindex.ru/news/rss/"
-   ]
+   "mode": "topics"
   },
   {
    "name": "Cossa",
