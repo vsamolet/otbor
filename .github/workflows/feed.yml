@@ -2,7 +2,7 @@ name: Сборка ленты
 
 on:
   schedule:
-    - cron: '*/20 * * * *'
+    - cron: '7 * * * *'   # запасное расписание; основное — таймер Cloudflare (timer-worker.js), каждые 15 минут
   push:
     branches: [main]
   workflow_dispatch:
