@@ -422,6 +422,44 @@ const ICON = {
   save: '<svg viewBox="0 0 24 24"><path d="M6 4h12v17l-6-4-6 4z"/></svg>',
   more: '<svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></svg>',
 };
+/* запасной перевод на телефоне: если сервер не смог перевести (Google ограничил серверы GitHub),
+   телефон переводит видимые карточки сам — у него свой адрес и свои лимиты */
+const isForeignText = s => {
+  const cyr = (s.match(/[\u0400-\u04FF]/g) || []).length, lat = (s.match(/[A-Za-z]/g) || []).length;
+  return lat >= 12 && cyr < lat * 0.1;
+};
+let trBusy = false;
+async function clientTranslate(visible){
+  if(trBusy || !S.translate || !navigator.onLine) return;
+  const now = Date.now();
+  const need = visible.map(v => ITEMS[v.id]).filter(it => it && !it.tTitle && !(it.trTry > now - 10 * 60e3) && isForeignText(it.title + ' ' + it.sum)).slice(0, 60);
+  if(!need.length) return;
+  trBusy = true; let done = 0;
+  need.forEach(it => it.trTry = now);
+  try{
+    for(let i = 0; i < need.length; i += 20){
+      const batch = need.slice(i, i + 20);
+      const body = batch.map(it => 'q=' + encodeURIComponent(it.title + (it.sum ? '\n' + it.sum.slice(0, 300) : ''))).join('&');
+      const r = await fetch('https://clients5.google.com/translate_a/t?client=dict-chrome-ex&sl=auto&tl=ru', {
+        method: 'POST', body, headers: {'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'}});
+      if(!r.ok) break;
+      const j = await r.json();
+      if(!Array.isArray(j) || j.length !== batch.length) break;
+      batch.forEach((it, k) => {
+        const x = j[k], text = String(Array.isArray(x) ? x[0] || '' : x || ''), lang = Array.isArray(x) ? String(x[1] || '') : '';
+        if(!text || lang === 'ru') return;
+        const nl = text.indexOf('\n');
+        it.tTitle = (nl >= 0 ? text.slice(0, nl) : text).trim();
+        it.tSum = nl >= 0 ? text.slice(nl + 1).trim() : '';
+        it.lang = lang || 'en';
+        if(it.tTitle) done++; else delete it.tTitle;
+      });
+    }
+  }catch(e){}
+  trBusy = false;
+  if(done){ saveAll(); render(); }
+}
+
 const showOrig = new Set();   // карточки, у которых вручную включён оригинал
 const isTr = it => S.translate && it.tTitle && !showOrig.has(it.id);
 const tTitle = it => isTr(it) ? it.tTitle : it.title;
@@ -489,6 +527,7 @@ function render(){
     if(list.length > view.limit) html += `<button class="more" data-more-list>Показать ещё (${list.length - view.limit})</button>`;
   }
   $('#feed').innerHTML = html;
+  if(list.length) clientTranslate(list.slice(0, view.limit));
 }
 function renderChips(){
   const chips = [{id:'all', name:'Все'}, ...S.topics.filter(t => t.on).map(t => ({id:t.id, name:t.name})),

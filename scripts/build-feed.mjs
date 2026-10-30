@@ -107,15 +107,36 @@ try {
     if (it.tTitle) prevTr.set(it.link, { tTitle: it.tTitle, tHtml: it.tHtml || '', lang: it.lang || '' });
 } catch (e) {}
 
-async function gtx(text) {
-  const url = 'https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=ru&dt=t&q=' + encodeURIComponent(text);
-  const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), 15000);
+// Два адреса Google: пакетный (clients5, до 20 текстов за запрос) и одиночный (gtx) — запасной.
+// При 429/5xx ждём и повторяем; если Google упорно отказывает — останавливаемся,
+// непереведённое доделает телефон, а следующая сборка попробует снова.
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+async function gfetch(url, opts = {}) {
+  const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), 20000);
   try {
-    const r = await fetch(url, { signal: ctrl.signal, headers: { 'User-Agent': UA } });
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    const j = await r.json();
-    return { text: (j[0] || []).map(x => x && x[0] || '').join(''), lang: j[2] || '' };
+    const r = await fetch(url, { ...opts, signal: ctrl.signal, headers: { 'User-Agent': UA, ...(opts.headers || {}) } });
+    if (!r.ok) { const e = new Error('HTTP ' + r.status); e.status = r.status; throw e; }
+    return await r.json();
   } finally { clearTimeout(t); }
+}
+async function trBatch(texts) {
+  const body = texts.map(t => 'q=' + encodeURIComponent(t)).join('&');
+  const j = await gfetch('https://clients5.google.com/translate_a/t?client=dict-chrome-ex&sl=auto&tl=ru', {
+    method: 'POST', body, headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' } });
+  if (!Array.isArray(j) || j.length !== texts.length) throw new Error('неожиданный ответ');
+  return j.map(x => Array.isArray(x) ? { text: String(x[0] || ''), lang: String(x[1] || '') } : { text: String(x || ''), lang: '' });
+}
+async function trOne(text) {
+  const j = await gfetch('https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=ru&dt=t&q=' + encodeURIComponent(text));
+  return { text: (j[0] || []).map(x => x && x[0] || '').join(''), lang: j[2] || '' };
+}
+async function withRetry(fn) {
+  let err;
+  for (const wait of [0, 8000, 25000]) {
+    if (wait) await sleep(wait);
+    try { return await fn(); } catch (e) { err = e; if (e.status && e.status < 429 && e.status !== 408) break; }
+  }
+  throw err;
 }
 
 const todo = [];
@@ -125,26 +146,40 @@ for (const f of Object.values(feeds)) for (const it of f.items) {
   const p = prevTr.get(it.link);
   if (p) { Object.assign(it, p); reused++; } else todo.push(it);
 }
-let translated = 0, failsInRow = 0, trErr = '';
-const trDeadline = Date.now() + 4 * 60e3;
-await Promise.all(Array.from({ length: 4 }, async () => {
-  while (todo.length && failsInRow < 6 && Date.now() < trDeadline) {
-    const it = todo.shift();
-    const snippet = it.html.slice(0, 300);
-    try {
-      const r = await gtx(it.title + (snippet ? '\n' + snippet : ''));
-      const nl = r.text.indexOf('\n');
-      it.tTitle = (nl >= 0 ? r.text.slice(0, nl) : r.text).trim();
-      it.tHtml = nl >= 0 ? r.text.slice(nl + 1).trim() : '';
-      it.lang = r.lang;
-      if (!it.tTitle || r.lang === 'ru') { delete it.tTitle; delete it.tHtml; }
-      else translated++;
-      failsInRow = 0;
-    } catch (e) { failsInRow++; trErr = e.message; }
-    await new Promise(r => setTimeout(r, 120));
+const srcText = it => (it.title + (it.html ? '\n' + it.html.slice(0, 300) : '')).replace(/\n+/g, m => m.length > 1 ? '\n' : m);
+function apply(it, r) {
+  if (!r || !r.text || r.lang === 'ru') return false;
+  const nl = r.text.indexOf('\n');
+  it.tTitle = (nl >= 0 ? r.text.slice(0, nl) : r.text).trim();
+  it.tHtml = nl >= 0 ? r.text.slice(nl + 1).trim() : '';
+  it.lang = r.lang;
+  if (!it.tTitle) { delete it.tTitle; delete it.tHtml; return false; }
+  return true;
+}
+let translated = 0, failedBatches = 0, trErr = '', usedFallback = 0;
+const trDeadline = Date.now() + 5 * 60e3;
+const pending = todo.slice();
+while (pending.length && failedBatches < 3 && Date.now() < trDeadline) {
+  const batch = pending.splice(0, 20);
+  try {
+    const res = await withRetry(() => trBatch(batch.map(srcText)));
+    batch.forEach((it, i) => { if (apply(it, res[i])) translated++; });
+    failedBatches = 0;
+  } catch (e) {
+    trErr = 'пакетный: ' + e.message;
+    // запасной адрес — по одному
+    let ok = 0;
+    for (const it of batch) {
+      try { if (apply(it, await trOne(srcText(it)))) { translated++; usedFallback++; ok++; } }
+      catch (e2) { trErr += '; одиночный: ' + e2.message; break; }
+      await sleep(150);
+    }
+    if (!ok) { failedBatches++; pending.unshift(...batch.filter(it => !it.tTitle)); await sleep(5000); }
   }
-}));
-console.log(`\nПеревод: новых ${translated}, из прошлой сборки ${reused}, осталось без перевода ${todo.length}${trErr ? ' (последняя ошибка: ' + trErr + ')' : ''}`);
+  await sleep(300);
+}
+const left = todo.filter(it => !it.tTitle).length;
+console.log(`\nПеревод: новых ${translated}${usedFallback ? ' (запасным адресом ' + usedFallback + ')' : ''}, из прошлой сборки ${reused}, осталось без перевода ${left}${left && trErr ? ' (последняя ошибка: ' + trErr + ')' : ''}`);
 
 // приложение + данные
 await fs.rm(OUT, { recursive: true, force: true });
